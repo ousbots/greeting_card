@@ -3,15 +3,20 @@ use std::time::Duration;
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 
 #[derive(Component)]
-struct WalkingSprite;
-
-#[derive(Component)]
 struct AnimationConfig {
     first_index: usize,
     last_index: usize,
     fps: u8,
     frame_timer: Timer,
 }
+
+#[derive(Message)]
+struct AnimationTrigger {
+    flip_x: bool,
+}
+
+#[derive(Component)]
+struct WalkingSprite;
 
 impl AnimationConfig {
     fn new(first: usize, last: usize, fps: u8) -> Self {
@@ -30,18 +35,20 @@ impl AnimationConfig {
 
 // Add the animation systems to the app.
 pub fn add_systems(app: &mut App) {
-    app.add_systems(Startup, help)
+    app.add_message::<AnimationTrigger>()
+        .add_systems(Startup, init)
         .add_systems(Update, execute_animations)
         .add_systems(
             Update,
             (
-                trigger_animation::<WalkingSprite>.run_if(input_just_pressed(KeyCode::ArrowRight)),
-                trigger_animation::<WalkingSprite>.run_if(input_just_pressed(KeyCode::ArrowLeft)),
+                send_right.run_if(input_just_pressed(KeyCode::ArrowRight)),
+                send_left.run_if(input_just_pressed(KeyCode::ArrowLeft)),
+                trigger_animation::<WalkingSprite>,
             ),
         );
 }
 
-// Loop through all the sprites and advance their animation, defined by the config..
+// Loop through all the sprites and advance their animation, defined by the config.
 fn execute_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &mut Sprite)>) {
     for (mut config, mut sprite) in &mut query {
         // Track how long the current sprite has been displayed.
@@ -61,12 +68,8 @@ fn execute_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &
     }
 }
 
-// Create the animation frame timer when animations are triggered.
-fn trigger_animation<S: Component>(mut animation: Single<&mut AnimationConfig, With<S>>) {
-    animation.frame_timer = AnimationConfig::timer_from_fps(animation.fps);
-}
-
-fn help(
+// Animation initialization.
+fn init(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_layouts: ResMut<Assets<TextureAtlasLayout>>,
@@ -75,7 +78,7 @@ fn help(
 
     // Display help UI in the upper left.
     commands.spawn((
-        Text::new("Left Arrow: animate left\nRight Arrow: animate right"),
+        Text::new("Left: animate left\nRight: animate right"),
         Node {
             position_type: PositionType::Absolute,
             top: px(12),
@@ -105,4 +108,26 @@ fn help(
         WalkingSprite,
         animation_config,
     ));
+}
+
+// Send an animation event when left arrow is pressed.
+fn send_left(mut events: MessageWriter<AnimationTrigger>) {
+    events.write(AnimationTrigger { flip_x: true });
+}
+
+// Send an animation event when right arrow is pressed.
+fn send_right(mut events: MessageWriter<AnimationTrigger>) {
+    events.write(AnimationTrigger { flip_x: false });
+}
+
+// Read animation messages and trigger the animations.
+fn trigger_animation<S: Component>(
+    mut events: MessageReader<AnimationTrigger>,
+    query: Single<(&mut AnimationConfig, &mut Sprite), With<S>>,
+) {
+    let (mut config, mut sprite) = query.into_inner();
+    for event in events.read() {
+        sprite.flip_x = event.flip_x;
+        config.frame_timer = AnimationConfig::timer_from_fps(config.fps);
+    }
 }
