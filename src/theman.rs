@@ -146,7 +146,7 @@ fn init(
             }),
             ..default()
         },
-        Transform::from_scale(Vec3::splat(4.0)).with_translation(Vec3::new(-200.0, -50.0, 0.0)),
+        Transform::from_scale(Vec3::splat(4.0)).with_translation(Vec3::new(-200.0, -55.0, 0.0)),
         TheMan,
         AnimationConfig::new(0, 8, 10),
         AnimationState::Idle,
@@ -173,11 +173,7 @@ fn trigger_animation<S: Component>(
                         layout: sprite_assets.standing_layout.clone(),
                         index: 0,
                     });
-                    if *state == AnimationState::WalkingLeft {
-                        sprite.flip_x = true;
-                    } else {
-                        sprite.flip_x = false;
-                    }
+                    sprite.flip_x = *state == AnimationState::WalkingLeft;
                 }
 
                 AnimationState::WalkingLeft => {

@@ -2,6 +2,7 @@
 
 mod animation;
 mod app;
+mod background;
 mod fireplace;
 mod theman;
 

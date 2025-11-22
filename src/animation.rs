@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::time::Duration;
 
-use crate::{fireplace, theman};
+use crate::{background, fireplace, theman};
 
 #[derive(Component)]
 pub struct AnimationConfig {
@@ -29,6 +29,7 @@ impl AnimationConfig {
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
     app.add_systems(Startup, init);
+    background::add_systems(app);
     fireplace::add_systems(app);
     theman::add_systems(app);
 }

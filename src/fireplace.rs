@@ -21,11 +21,11 @@ struct Fireplace;
 
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
-    app.add_systems(Startup, init).add_systems(Update, execute_animations);
+    app.add_systems(Startup, init).add_systems(Update, handle_animations);
 }
 
 // Loop through all the sprites and advance their animation.
-fn execute_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &mut Sprite, &AnimationState)>) {
+fn handle_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &mut Sprite, &AnimationState)>) {
     let mut rng = rand::rng();
 
     for (mut config, mut sprite, state) in &mut query {
@@ -79,7 +79,7 @@ fn init(
         },
         Transform::from_scale(Vec3::splat(7.0)).with_translation(Vec3::new(0.0, 0.0, 0.0)),
         Fireplace,
-        AnimationConfig::new(0, 4, 4),
+        AnimationConfig::new(0, 4, 6),
         AnimationState::Running,
     ));
 }
