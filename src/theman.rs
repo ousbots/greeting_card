@@ -5,10 +5,15 @@ use std::time::Duration;
 use crate::animation::AnimationConfig;
 
 #[derive(Component, Clone, Copy, PartialEq)]
-enum AnimationState {
+enum State {
     Idle,
-    WalkingLeft,
-    WalkingRight,
+    Walking,
+}
+
+#[derive(Component, Clone, Copy, PartialEq)]
+enum Direction {
+    Left,
+    Right,
 }
 
 #[derive(Component, Clone, Copy, PartialEq)]
@@ -18,8 +23,9 @@ enum FootStep {
 }
 
 #[derive(Message)]
-struct AnimationTrigger {
-    state: AnimationState,
+struct Trigger {
+    state: State,
+    direction: Direction,
 }
 
 #[derive(Component)]
@@ -55,7 +61,7 @@ const AUDIO_WIDTH: f32 = -8.;
 
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
-    app.add_message::<AnimationTrigger>()
+    app.add_message::<Trigger>()
         .add_systems(Startup, init)
         .add_systems(Update, (handle_animations, idle_action))
         .add_systems(Update, (handle_keys, trigger_animation::<TheMan>))
@@ -64,10 +70,10 @@ pub fn add_systems(app: &mut App) {
 }
 
 // Loop through all the man's sprites and advance their animation.
-fn handle_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &mut Sprite, &AnimationState)>) {
+fn handle_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &mut Sprite, &State)>) {
     for (mut config, mut sprite, state) in &mut query {
         // Idle state only has one frame so skip.
-        if *state == AnimationState::Idle {
+        if *state == State::Idle {
             continue;
         }
 
@@ -89,36 +95,49 @@ fn handle_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &m
 }
 
 // Handle key input and send animation events.
-fn handle_keys(keyboard: Res<ButtonInput<KeyCode>>, mut events: MessageWriter<AnimationTrigger>) {
+fn handle_keys(keyboard: Res<ButtonInput<KeyCode>>, mut events: MessageWriter<Trigger>) {
     // Check for key presses.
     if keyboard.just_pressed(KeyCode::ArrowLeft) {
-        events.write(AnimationTrigger {
-            state: AnimationState::WalkingLeft,
+        events.write(Trigger {
+            state: State::Walking,
+            direction: Direction::Left,
         });
     } else if keyboard.just_pressed(KeyCode::ArrowRight) {
-        events.write(AnimationTrigger {
-            state: AnimationState::WalkingRight,
+        events.write(Trigger {
+            state: State::Walking,
+            direction: Direction::Right,
         });
     }
 
     // Check for key releases.
-    if (keyboard.just_released(KeyCode::ArrowLeft) || keyboard.just_released(KeyCode::ArrowRight))
-        && !keyboard.pressed(KeyCode::ArrowLeft)
-        && !keyboard.pressed(KeyCode::ArrowRight)
-    {
-        events.write(AnimationTrigger {
-            state: AnimationState::Idle,
+    if keyboard.just_released(KeyCode::ArrowLeft) && !keyboard.pressed(KeyCode::ArrowRight) {
+        events.write(Trigger {
+            state: State::Idle,
+            direction: Direction::Left,
+        });
+    }
+
+    if keyboard.just_released(KeyCode::ArrowRight) && !keyboard.pressed(KeyCode::ArrowLeft) {
+        events.write(Trigger {
+            state: State::Idle,
+            direction: Direction::Right,
         });
     }
 }
 
 // Move the man based on the current state.
-fn handle_movement(time: Res<Time>, mut sprite_position: Query<(&AnimationState, &mut Transform)>) {
-    for (state, mut transform) in &mut sprite_position {
+fn handle_movement(time: Res<Time>, mut sprite_position: Query<(&State, &Direction, &mut Transform)>) {
+    for (state, direction, mut transform) in &mut sprite_position {
         match *state {
-            AnimationState::Idle => (),
-            AnimationState::WalkingLeft => transform.translation.x -= WALKING_SPEED * time.delta_secs(),
-            AnimationState::WalkingRight => transform.translation.x += WALKING_SPEED * time.delta_secs(),
+            State::Idle => (),
+            State::Walking => match *direction {
+                Direction::Left => {
+                    transform.translation.x -= WALKING_SPEED * time.delta_secs();
+                }
+                Direction::Right => {
+                    transform.translation.x += WALKING_SPEED * time.delta_secs();
+                }
+            },
         }
     }
 }
@@ -127,11 +146,11 @@ fn handle_audio(
     mut commands: Commands,
     time: Res<Time>,
     audio_assets: Res<AudioAssets>,
-    mut query: Query<(&AnimationState, &mut StepTimer, &mut FootStep)>,
+    mut query: Query<(&State, &mut StepTimer, &mut FootStep)>,
 ) {
     for (state, mut timer, mut footstep) in &mut query {
         match *state {
-            AnimationState::WalkingLeft | AnimationState::WalkingRight => {
+            State::Walking => {
                 timer.0.tick(time.delta());
                 if timer.0.just_finished() {
                     match *footstep {
@@ -161,7 +180,7 @@ fn handle_audio(
                     }
                 }
             }
-            AnimationState::Idle => {
+            State::Idle => {
                 timer.0.set_duration(Duration::from_secs_f32(WALKING_TIMER_DELAY));
             }
         }
@@ -169,9 +188,9 @@ fn handle_audio(
 }
 
 // Change the man's direction using the idle timer.
-fn idle_action(time: Res<Time>, mut query: Query<(&mut IdleTimer, &mut Sprite, &AnimationState)>) {
+fn idle_action(time: Res<Time>, mut query: Query<(&mut IdleTimer, &mut Sprite, &State)>) {
     for (mut timer, mut sprite, state) in &mut query {
-        if *state == AnimationState::Idle {
+        if *state == State::Idle {
             timer.0.tick(time.delta());
             if timer.0.just_finished() {
                 sprite.flip_x = !sprite.flip_x;
@@ -223,9 +242,10 @@ fn init(
         Transform::from_scale(Vec3::splat(4.0)).with_translation(Vec3::new(-200.0, -55.0, 10.0)),
         TheMan,
         AnimationConfig::new(0, 8, 10),
-        AnimationState::Idle,
+        State::Idle,
         IdleTimer(Timer::from_seconds(5.0, TimerMode::Repeating)),
         StepTimer(Timer::from_seconds(0.0, TimerMode::Repeating)),
+        Direction::Right,
         FootStep::Left,
         SpatialListener::new(AUDIO_WIDTH),
     ));
@@ -233,48 +253,50 @@ fn init(
 
 // Read animation messages and update animation state.
 fn trigger_animation<S: Component>(
-    mut events: MessageReader<AnimationTrigger>,
+    mut events: MessageReader<Trigger>,
     sprite_assets: Res<SpriteAssets>,
-    query: Single<(&mut AnimationConfig, &mut Sprite, &mut AnimationState), With<S>>,
+    query: Single<(&mut AnimationConfig, &mut Sprite, &mut State, &mut Direction), With<S>>,
 ) {
-    let (mut config, mut sprite, mut state) = query.into_inner();
+    let (mut config, mut sprite, mut state, mut direction) = query.into_inner();
     for event in events.read() {
-        let new_state = event.state;
-
         // Only update if state changed
-        if *state != new_state {
-            match new_state {
-                AnimationState::Idle => {
+        if *state != event.state || *direction != event.direction {
+            match event.state {
+                State::Idle => {
                     sprite.image = sprite_assets.standing_sprite.clone();
                     sprite.texture_atlas = Some(TextureAtlas {
                         layout: sprite_assets.standing_layout.clone(),
                         index: 0,
                     });
-                    sprite.flip_x = *state == AnimationState::WalkingLeft;
+                    sprite.flip_x = *direction == Direction::Left;
                 }
 
-                AnimationState::WalkingLeft => {
-                    sprite.image = sprite_assets.walking_sprite.clone();
-                    sprite.texture_atlas = Some(TextureAtlas {
-                        layout: sprite_assets.walking_layout.clone(),
-                        index: 0,
-                    });
-                    sprite.flip_x = true;
-                    config.frame_timer = AnimationConfig::timer_from_fps(config.fps);
-                }
+                State::Walking => match event.direction {
+                    Direction::Left => {
+                        sprite.image = sprite_assets.walking_sprite.clone();
+                        sprite.texture_atlas = Some(TextureAtlas {
+                            layout: sprite_assets.walking_layout.clone(),
+                            index: 0,
+                        });
+                        sprite.flip_x = true;
+                        config.frame_timer = AnimationConfig::timer_from_fps(config.fps);
+                        *direction = event.direction;
+                    }
 
-                AnimationState::WalkingRight => {
-                    sprite.image = sprite_assets.walking_sprite.clone();
-                    sprite.texture_atlas = Some(TextureAtlas {
-                        layout: sprite_assets.walking_layout.clone(),
-                        index: 0,
-                    });
-                    sprite.flip_x = false;
-                    config.frame_timer = AnimationConfig::timer_from_fps(config.fps);
-                }
+                    Direction::Right => {
+                        sprite.image = sprite_assets.walking_sprite.clone();
+                        sprite.texture_atlas = Some(TextureAtlas {
+                            layout: sprite_assets.walking_layout.clone(),
+                            index: 0,
+                        });
+                        sprite.flip_x = false;
+                        config.frame_timer = AnimationConfig::timer_from_fps(config.fps);
+                        *direction = event.direction;
+                    }
+                },
             }
 
-            *state = new_state;
+            *state = event.state;
         }
     }
 }

@@ -4,7 +4,7 @@ use rand::Rng;
 use crate::animation::AnimationConfig;
 
 #[derive(Component, Clone, Copy, PartialEq)]
-enum AnimationState {
+enum State {
     Off,
     Starting,
     Running,
@@ -27,12 +27,12 @@ pub fn add_systems(app: &mut App) {
 }
 
 // Loop through all the sprites and advance their animation.
-fn handle_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &mut Sprite, &AnimationState)>) {
+fn handle_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &mut Sprite, &State)>) {
     let mut rng = rand::rng();
 
     for (mut config, mut sprite, state) in &mut query {
         // Off state only has one frame so skip.
-        if *state == AnimationState::Off {
+        if *state == State::Off {
             continue;
         }
 
@@ -82,7 +82,7 @@ fn init(
         Transform::from_scale(Vec3::splat(7.0)).with_translation(Vec3::new(0.0, 0.0, 1.0)),
         Fireplace,
         AnimationConfig::new(0, 4, 6),
-        AnimationState::Running,
+        State::Running,
         AudioPlayer::new(asset_server.load("fire.ogg")),
         PlaybackSettings::LOOP
             .with_spatial(true)
