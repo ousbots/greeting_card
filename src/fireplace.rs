@@ -95,32 +95,19 @@ fn handle_interaction(
 fn handle_sound(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    query: Query<(Entity, &State, Option<&AudioSink>), (With<Fireplace>, Changed<State>)>,
+    query: Query<(&State, &mut SpatialAudioSink), (With<Fireplace>, Changed<State>)>,
 ) {
-    for (entity, state, audio_sink) in &query {
+    for (state, audio_sink) in &query {
         match *state {
             // Start the fireplace sound effect if it isn't already running.
             State::Running => {
-                if audio_sink.is_none() {
-                    commands.entity(entity).insert((
-                        AudioPlayer::new(asset_server.load("fire.ogg")),
-                        PlaybackSettings::LOOP
-                            .with_spatial(true)
-                            .with_volume(Volume::Linear(RUNNING_VOLUME)),
-                    ));
-                }
+                audio_sink.play();
             }
 
             // Remove any existing sound effects.
             // BUG: this doesn't stop the sound.
             State::Off => {
-                if let Some(sink) = audio_sink {
-                    sink.stop();
-                }
-                commands
-                    .entity(entity)
-                    .remove::<AudioPlayer>()
-                    .remove::<PlaybackSettings>();
+                audio_sink.pause();
             }
 
             // TODO: add sound effect for the starting state.
@@ -154,6 +141,11 @@ fn init(
         Fireplace,
         AnimationConfig::new(0, 4, 6),
         State::Off,
+        AudioPlayer::new(asset_server.load("fire.ogg")),
+        PlaybackSettings::LOOP
+            .with_spatial(true)
+            .with_volume(Volume::Linear(RUNNING_VOLUME))
+            .paused(),
         Interactable {
             width: SPRITE_WIDTH * SPRITE_SCALE,
             height: SPRITE_HEIGHT * SPRITE_SCALE,
