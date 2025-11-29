@@ -190,7 +190,7 @@ fn handle_audio(
                                     audio_assets.left_steps[rng().random_range(0..audio_assets.left_steps.len())]
                                         .clone(),
                                 ),
-                                PlaybackSettings::ONCE.with_volume(Volume::Linear(WALKING_VOLUME)),
+                                PlaybackSettings::DESPAWN.with_volume(Volume::Linear(WALKING_VOLUME)),
                             ));
                             timer.0.set_duration(Duration::from_secs_f32(WALKING_TIMER));
                             *footstep = FootStep::Right;
@@ -201,7 +201,7 @@ fn handle_audio(
                                     audio_assets.right_steps[rng().random_range(0..audio_assets.right_steps.len())]
                                         .clone(),
                                 ),
-                                PlaybackSettings::ONCE.with_volume(Volume::Linear(WALKING_VOLUME)),
+                                PlaybackSettings::DESPAWN.with_volume(Volume::Linear(WALKING_VOLUME)),
                             ));
                             timer.0.set_duration(Duration::from_secs_f32(WALKING_TIMER));
                             *footstep = FootStep::Left;
