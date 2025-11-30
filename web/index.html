@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merry Christmas!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        canvas {
+            background-color: white;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        #loading {
+            position: absolute;
+            color: white;
+            font-size: 18px;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading Christmas Scene...</div>
+    <script type="module">
+        import init from './wasm/greeting_card.js'
+
+        const loadingEl = document.getElementById('loading');
+        init()
+            .then(() => { loadingEl.style.display = 'none'; })
+            .catch((error) => {
+                if (!error.message.startsWith("Using exceptions for control flow")) {
+                    console.error("Failed to initialize:", error);
+                    loadingEl.textContent = "Failed to load. Please refresh.";
+                }
+            });
+    </script>
+</body>
+</html>
