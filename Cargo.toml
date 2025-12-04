@@ -6,3 +6,8 @@ edition = "2024"
 [dependencies]
 bevy = "*"
 rand = "*"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
