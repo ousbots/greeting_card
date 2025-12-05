@@ -23,13 +23,13 @@ struct SpriteAssets {
 #[derive(Component)]
 struct Fireplace;
 
+const INTERACTABLE_ID: &str = "fireplace";
+
 const RUNNING_VOLUME: f32 = 0.9;
 
 const SPRITE_SCALE: f32 = 2.5;
 const SPRITE_WIDTH: f32 = 8.;
 const SPRITE_HEIGHT: f32 = 16.;
-
-const INTERACTABLE_ID: &str = "fireplace";
 
 const LIGHT_INTENSITY: f32 = 0.8;
 const LIGHT_RADIUS: f32 = 300.0;

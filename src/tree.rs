@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_light_2d::prelude::*;
 use rand::Rng;
 
 use crate::{
@@ -22,11 +23,22 @@ struct SpriteAssets {
 #[derive(Component)]
 struct Tree;
 
+#[derive(Component)]
+struct ColorChangeTimer(Timer);
+
+const INTERACTABLE_ID: &str = "tree";
+
 const SPRITE_SCALE: f32 = 2.0;
 const SPRITE_WIDTH: f32 = 14.;
 const SPRITE_HEIGHT: f32 = 16.;
 
-const INTERACTABLE_ID: &str = "tree";
+const LIGHT_INTENSITY: f32 = 0.6;
+const LIGHT_RADIUS: f32 = 100.0;
+const LIGHT_COLOR_BLUE: Color = Color::srgb(0.2, 0.2, 0.8);
+const LIGHT_COLOR_GREEN: Color = Color::srgb(0.2, 0.8, 0.2);
+const LIGHT_COLOR_RED: Color = Color::srgb(0.8, 0.2, 0.2);
+
+const COLOR_CHANGE_DELAY: f32 = 1.0;
 
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
@@ -38,6 +50,8 @@ pub fn add_systems(app: &mut App) {
             handle_highlight_reset,
             handle_interaction,
             handle_interaction_disable_highlight,
+            handle_light,
+            handle_color_change,
         ),
     );
 }
@@ -139,6 +153,50 @@ fn handle_interaction_disable_highlight(
     }
 }
 
+// Adjust light intensity based on the tree state.
+fn handle_light(mut query: Query<(&State, &mut PointLight2d), (With<Tree>, Changed<State>)>) {
+    for (state, mut light) in &mut query {
+        match *state {
+            State::On => {
+                light.intensity = LIGHT_INTENSITY;
+            }
+            State::Off => {
+                light.intensity = 0.0;
+            }
+        }
+    }
+}
+
+// Randomly change light color over time when the tree is on.
+fn handle_color_change(
+    time: Res<Time>,
+    mut query: Query<(&State, &mut PointLight2d, &mut ColorChangeTimer), With<Tree>>,
+) {
+    let mut rng = rand::rng();
+
+    let select_color = |index| -> Color {
+        match index {
+            0 => LIGHT_COLOR_BLUE,
+            1 => LIGHT_COLOR_GREEN,
+            _ => LIGHT_COLOR_RED,
+        }
+    };
+
+    for (state, mut light, mut timer) in &mut query {
+        if *state == State::On {
+            timer.0.tick(time.delta());
+
+            if timer.0.just_finished() {
+                let mut color = select_color(rng.random_range(0..=2));
+                while light.color == color {
+                    color = select_color(rng.random_range(0..=2));
+                }
+                light.color = color;
+            }
+        }
+    }
+}
+
 // Animation initialization.
 fn init(
     mut commands: Commands,
@@ -170,5 +228,12 @@ fn init(
             width: SPRITE_WIDTH * SPRITE_SCALE,
             first: true,
         },
+        PointLight2d {
+            color: LIGHT_COLOR_GREEN,
+            intensity: 0.0,
+            radius: LIGHT_RADIUS,
+            ..default()
+        },
+        ColorChangeTimer(Timer::from_seconds(COLOR_CHANGE_DELAY, TimerMode::Repeating)),
     ));
 }
