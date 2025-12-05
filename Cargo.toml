@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 bevy = "*"
+bevy_light_2d = "*"
 rand = "*"
 
 [profile.release]

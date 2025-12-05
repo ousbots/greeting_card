@@ -1,4 +1,5 @@
 use bevy::{audio::Volume, prelude::*};
+use bevy_light_2d::prelude::*;
 use rand::Rng;
 
 use crate::{
@@ -30,6 +31,10 @@ const SPRITE_HEIGHT: f32 = 16.;
 
 const INTERACTABLE_ID: &str = "fireplace";
 
+const LIGHT_INTENSITY: f32 = 0.8;
+const LIGHT_RADIUS: f32 = 300.0;
+const LIGHT_COLOR: Color = Color::srgb(1.0, 0.6, 0.2);
+
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
     app.add_systems(Startup, init).add_systems(
@@ -41,6 +46,7 @@ pub fn add_systems(app: &mut App) {
             handle_interaction,
             handle_interaction_disable_highlight,
             handle_sound,
+            handle_light,
         ),
     );
 }
@@ -159,6 +165,20 @@ fn handle_sound(query: Query<(&State, &mut SpatialAudioSink), (With<Fireplace>, 
     }
 }
 
+// Adjust light intensity based on fireplace state.
+fn handle_light(mut query: Query<(&State, &mut PointLight2d), (With<Fireplace>, Changed<State>)>) {
+    for (state, mut light) in &mut query {
+        match *state {
+            State::Running => {
+                light.intensity = LIGHT_INTENSITY;
+            }
+            State::Off => {
+                light.intensity = 0.0;
+            }
+        }
+    }
+}
+
 // Animation initialization.
 fn init(
     mut commands: Commands,
@@ -194,6 +214,12 @@ fn init(
             height: SPRITE_HEIGHT * SPRITE_SCALE,
             width: SPRITE_WIDTH * SPRITE_SCALE,
             first: true,
+        },
+        PointLight2d {
+            color: LIGHT_COLOR,
+            intensity: 0.0,
+            radius: LIGHT_RADIUS,
+            ..default()
         },
     ));
 }

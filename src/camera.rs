@@ -1,0 +1,42 @@
+use bevy::{camera::ScalingMode, prelude::*};
+use bevy_light_2d::prelude::*;
+
+const WINDOW_HEIGHT: f32 = 200.0;
+const WINDOW_WIDTH: f32 = 400.0;
+
+const AMBIENT_BRIGHTNESS: f32 = 0.2;
+
+// Add the camera systems.
+pub fn add_systems(app: &mut App) {
+    app.add_systems(Startup, init);
+}
+
+// Camera initialization.
+fn init(mut commands: Commands) {
+    // Create the camera projection.
+    let mut ortho = OrthographicProjection::default_2d();
+    ortho.scaling_mode = ScalingMode::Fixed {
+        width: WINDOW_WIDTH,
+        height: WINDOW_HEIGHT,
+    };
+    let projection = Projection::Orthographic(ortho);
+
+    // Display help UI in the upper left.
+    commands.spawn((
+        Camera2d,
+        projection,
+        Light2d {
+            ambient_light: AmbientLight2d {
+                brightness: AMBIENT_BRIGHTNESS,
+                ..default()
+            },
+        },
+        Text::new("the scene"),
+        Node {
+            position_type: PositionType::Absolute,
+            top: px(12),
+            left: px(12),
+            ..default()
+        },
+    ));
+}

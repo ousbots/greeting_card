@@ -3,6 +3,7 @@
 mod animation;
 mod app;
 mod background;
+mod camera;
 mod fireplace;
 mod house;
 mod interaction;
