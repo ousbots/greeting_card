@@ -23,7 +23,6 @@ struct Stereo;
 
 const RUNNING_VOLUME: f32 = 0.9;
 
-const SPRITE_SCALE: f32 = 2.0;
 const SPRITE_WIDTH: f32 = 20.;
 const SPRITE_HEIGHT: f32 = 16.;
 
@@ -78,10 +77,10 @@ fn handle_highlight(
         if *state == State::Off && interactable.first {
             let pulse = (((time.elapsed_secs() - highlight.elapsed_offset) * 4.).sin() + 1.).mul_add(0.1, 1.);
             sprite.color = Color::srgba(pulse, pulse, pulse, 1.);
-            transform.scale = Vec3::splat(SPRITE_SCALE * (((pulse - 1.) / 4.) + 1.));
+            transform.scale = Vec3::splat(((pulse - 1.) / 4.) + 1.);
         } else {
             sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(SPRITE_SCALE);
+            transform.scale = Vec3::splat(1.);
         }
     }
 }
@@ -94,7 +93,7 @@ fn handle_highlight_reset(
     for entity in removed.read() {
         if let Ok((mut sprite, mut transform)) = query.get_mut(entity) {
             sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(SPRITE_SCALE);
+            transform.scale = Vec3::splat(1.);
         }
     }
 }
@@ -165,7 +164,7 @@ fn init(
     // Load the running sprite sheet.
     let sprite = SpriteAssets {
         running_sprite: asset_server.load("stereo/stereo_animation.png"),
-        running_layout: texture_layouts.add(TextureAtlasLayout::from_grid(UVec2::splat(32), 5, 1, None, None)),
+        running_layout: texture_layouts.add(TextureAtlasLayout::from_grid(UVec2::splat(48), 5, 1, None, None)),
         off_sprite: asset_server.load("stereo/stereo.png"),
     };
     commands.insert_resource(sprite.clone());
@@ -177,7 +176,7 @@ fn init(
             texture_atlas: None,
             ..default()
         },
-        Transform::from_scale(Vec3::splat(SPRITE_SCALE)).with_translation(Vec3::new(90.0, -62.0, 5.0)),
+        Transform::from_translation(Vec3::new(90.0, -46.0, 5.0)),
         Stereo,
         AnimationConfig::new(0, 4, 4),
         State::Off,
@@ -188,8 +187,8 @@ fn init(
             .paused(),
         Interactable {
             id: INTERACTABLE_ID.to_string(),
-            height: SPRITE_HEIGHT * SPRITE_SCALE,
-            width: SPRITE_WIDTH * SPRITE_SCALE,
+            height: SPRITE_HEIGHT,
+            width: SPRITE_WIDTH,
             first: true,
         },
     ));

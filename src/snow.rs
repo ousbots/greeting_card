@@ -11,21 +11,20 @@ struct SnowParticle {
 #[derive(Component)]
 struct Snow;
 
-const PARTICLE_COUNT: usize = 200;
-const SPRITE_SCALE: f32 = 2.0;
+const PARTICLE_COUNT: usize = 600;
 
 const SPAWN_Y: f32 = 100.0;
 const DESPAWN_Y: f32 = -80.0;
-const SPAWN_X_MIN: f32 = -200.0;
-const SPAWN_X_MAX: f32 = 200.0;
+const SPAWN_X_MIN: f32 = -150.0;
+const SPAWN_X_MAX: f32 = 150.0;
 
-const FALL_SPEED_MIN: f32 = 20.0;
-const FALL_SPEED_MAX: f32 = 40.0;
+const FALL_SPEED_MIN: f32 = 10.0;
+const FALL_SPEED_MAX: f32 = 30.0;
 
 const DRIFT_SPEED_MIN: f32 = -7.0;
 const DRIFT_SPEED_MAX: f32 = 7.0;
 
-const OPACITY_MIN: f32 = 0.6;
+const OPACITY_MIN: f32 = 0.4;
 const OPACITY_MAX: f32 = 1.0;
 
 // Add the snow systems.
@@ -82,7 +81,7 @@ fn init(mut commands: Commands) {
                 custom_size: Some(Vec2::splat(1.0)),
                 ..default()
             },
-            Transform::from_scale(Vec3::splat(SPRITE_SCALE)).with_translation(Vec3::new(x, y, 1.0)),
+            Transform::from_translation(Vec3::new(x, y, 1.0)),
             SnowParticle {
                 fall_speed: rng.random_range(FALL_SPEED_MIN..=FALL_SPEED_MAX),
                 drift_speed: rng.random_range(DRIFT_SPEED_MIN..=DRIFT_SPEED_MAX),

@@ -27,12 +27,11 @@ const INTERACTABLE_ID: &str = "fireplace";
 
 const RUNNING_VOLUME: f32 = 0.9;
 
-const SPRITE_SCALE: f32 = 2.5;
 const SPRITE_WIDTH: f32 = 8.;
 const SPRITE_HEIGHT: f32 = 16.;
 
-const LIGHT_INTENSITY: f32 = 0.8;
-const LIGHT_RADIUS: f32 = 300.0;
+const LIGHT_INTENSITY: f32 = 0.75;
+const LIGHT_RADIUS: f32 = 150.0;
 const LIGHT_COLOR: Color = Color::srgb(1.0, 0.6, 0.2);
 
 // Add the animation systems.
@@ -87,10 +86,10 @@ fn handle_highlight(
         if *state == State::Off && interactable.first {
             let pulse = (((time.elapsed_secs() - highlight.elapsed_offset) * 4.).sin() + 1.).mul_add(0.1, 1.);
             sprite.color = Color::srgba(pulse, pulse, pulse, 1.);
-            transform.scale = Vec3::splat(SPRITE_SCALE * (((pulse - 1.) / 4.) + 1.));
+            transform.scale = Vec3::splat(((pulse - 1.) / 4.) + 1.);
         } else {
             sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(SPRITE_SCALE);
+            transform.scale = Vec3::splat(1.);
         }
     }
 }
@@ -103,7 +102,7 @@ fn handle_highlight_reset(
     for entity in removed.read() {
         if let Ok((mut sprite, mut transform)) = query.get_mut(entity) {
             sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(SPRITE_SCALE);
+            transform.scale = Vec3::splat(1.);
         }
     }
 }
@@ -188,7 +187,7 @@ fn init(
     // Load the running sprite sheet.
     let sprite = SpriteAssets {
         running_sprite: asset_server.load("fireplace/fireplace_animation.png"),
-        running_layout: texture_layouts.add(TextureAtlasLayout::from_grid(UVec2::splat(32), 5, 1, None, None)),
+        running_layout: texture_layouts.add(TextureAtlasLayout::from_grid(UVec2::splat(64), 5, 1, None, None)),
         off_sprite: asset_server.load("fireplace/fireplace.png"),
     };
     commands.insert_resource(sprite.clone());
@@ -200,7 +199,7 @@ fn init(
             texture_atlas: None,
             ..default()
         },
-        Transform::from_scale(Vec3::splat(SPRITE_SCALE)).with_translation(Vec3::new(0.0, -54.0, 5.0)),
+        Transform::from_translation(Vec3::new(0.0, -38.0, 5.0)),
         Fireplace,
         AnimationConfig::new(0, 4, 6),
         State::Off,
@@ -211,8 +210,8 @@ fn init(
             .paused(),
         Interactable {
             id: INTERACTABLE_ID.to_string(),
-            height: SPRITE_HEIGHT * SPRITE_SCALE,
-            width: SPRITE_WIDTH * SPRITE_SCALE,
+            height: SPRITE_HEIGHT,
+            width: SPRITE_WIDTH,
             first: true,
         },
         PointLight2d {
