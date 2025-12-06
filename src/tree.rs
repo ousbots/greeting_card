@@ -162,7 +162,7 @@ fn handle_interaction_disable_highlight(
     }
 }
 
-// Adjust light intensity based on the tree state.
+// Add or remove a flickering light based on the tree state.
 fn handle_light(
     mut commands: Commands,
     mut query: Query<(Entity, &State, &mut PointLight2d), (With<Tree>, Changed<State>)>,

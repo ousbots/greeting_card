@@ -4,13 +4,14 @@ use rand::Rng;
 
 use crate::{
     animation::AnimationConfig,
+    flickering_light::FlickeringLight,
     interaction::{Highlight, Interactable, InteractionEvent},
 };
 
 #[derive(Clone, Component, Copy, PartialEq)]
 enum State {
     Off,
-    Running,
+    On,
 }
 
 #[derive(Clone, Resource)]
@@ -30,9 +31,20 @@ const RUNNING_VOLUME: f32 = 0.9;
 const SPRITE_WIDTH: f32 = 8.;
 const SPRITE_HEIGHT: f32 = 16.;
 
-const LIGHT_INTENSITY: f32 = 0.75;
 const LIGHT_RADIUS: f32 = 150.0;
-const LIGHT_COLOR: Color = Color::srgb(1.0, 0.6, 0.2);
+const LIGHT_COLORS: [Color; 1] = [Color::srgb(1.0, 0.6, 0.2)];
+
+// Light effect noise parameters.
+const INTENSITY_OCTAVES: u32 = 4;
+const COLOR_OCTAVES: u32 = 2;
+
+const INTENSITY_FREQ: f32 = 2.0;
+const INTENSITY_MIN: f32 = 0.3;
+const INTENSITY_AMPLITUDE: f32 = 0.7;
+
+const COLOR_FREQ: f32 = 1.0;
+const COLOR_TEMPERATURE: f32 = 1.5;
+const COLOR_SEED_OFFSET: f32 = 100.0;
 
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
@@ -119,7 +131,7 @@ fn handle_interaction(
         {
             match *state {
                 State::Off => {
-                    *state = State::Running;
+                    *state = State::On;
                     sprite.image = sprite_assets.running_sprite.clone();
                     sprite.texture_atlas = Some(TextureAtlas {
                         layout: sprite_assets.running_layout.clone(),
@@ -127,7 +139,7 @@ fn handle_interaction(
                     });
                 }
 
-                State::Running => {
+                State::On => {
                     *state = State::Off;
                     sprite.image = sprite_assets.off_sprite.clone();
                     sprite.texture_atlas = None;
@@ -141,7 +153,7 @@ fn handle_interaction_disable_highlight(
     mut query: Query<(&mut State, &mut Interactable), (With<Fireplace>, Changed<State>)>,
 ) {
     for (state, mut interactable) in &mut query {
-        if *state == State::Running {
+        if *state == State::On {
             interactable.first = false;
         }
     }
@@ -152,7 +164,7 @@ fn handle_sound(query: Query<(&State, &mut SpatialAudioSink), (With<Fireplace>, 
     for (state, audio_sink) in &query {
         match *state {
             // Start the fireplace sound effect if it isn't already running.
-            State::Running => {
+            State::On => {
                 audio_sink.play();
             }
 
@@ -164,14 +176,32 @@ fn handle_sound(query: Query<(&State, &mut SpatialAudioSink), (With<Fireplace>, 
     }
 }
 
-// Adjust light intensity based on fireplace state.
-fn handle_light(mut query: Query<(&State, &mut PointLight2d), (With<Fireplace>, Changed<State>)>) {
-    for (state, mut light) in &mut query {
+// Add or remove flickering light based on the fireplace state.
+fn handle_light(
+    mut commands: Commands,
+    mut query: Query<(Entity, &State, &mut PointLight2d), (With<Fireplace>, Changed<State>)>,
+) {
+    let mut rng = rand::rng();
+
+    for (entity, state, mut light) in &mut query {
         match *state {
-            State::Running => {
-                light.intensity = LIGHT_INTENSITY;
+            State::On => {
+                commands.entity(entity).insert(FlickeringLight {
+                    seed: rng.random_range(0.0..1000.0),
+                    intensity_amplitude: INTENSITY_AMPLITUDE,
+                    intensity_frequency: INTENSITY_FREQ,
+                    intensity_min: INTENSITY_MIN,
+                    intensity_octaves: INTENSITY_OCTAVES,
+                    color_frequency: COLOR_FREQ,
+                    color_octaves: COLOR_OCTAVES,
+                    color_seed_offset: COLOR_SEED_OFFSET,
+                    color_temperature: COLOR_TEMPERATURE,
+                    colors: LIGHT_COLORS.to_vec(),
+                    time_offset: rng.random_range(0.0..100.0),
+                });
             }
             State::Off => {
+                commands.entity(entity).remove::<FlickeringLight>();
                 light.intensity = 0.0;
             }
         }
@@ -215,7 +245,7 @@ fn init(
             first: true,
         },
         PointLight2d {
-            color: LIGHT_COLOR,
+            color: LIGHT_COLORS[0],
             intensity: 0.0,
             radius: LIGHT_RADIUS,
             ..default()
