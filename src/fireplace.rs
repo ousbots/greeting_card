@@ -57,7 +57,7 @@ pub fn add_systems(app: &mut App) {
             handle_interaction,
             handle_interaction_disable_highlight,
             handle_sound,
-            handle_light,
+            handle_light.in_set(crate::flickering_light::LightInsertionSet),
         ),
     );
 }

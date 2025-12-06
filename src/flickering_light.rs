@@ -18,9 +18,12 @@ pub struct FlickeringLight {
     pub time_offset: f32,
 }
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct LightInsertionSet;
+
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
-    app.add_systems(Update, handle_light_flicker);
+    app.add_systems(Update, handle_light_flicker.after(LightInsertionSet));
 }
 
 // Blend the colors using weights.
