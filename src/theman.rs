@@ -111,7 +111,7 @@ fn handle_keys(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut trigger_events: MessageWriter<Trigger>,
     mut interaction_events: MessageWriter<InteractionEvent>,
-    query: Query<&InRange, With<TheMan>>,
+    query: Query<&InRange>,
 ) {
     // Check for key presses.
     if keyboard.just_pressed(KeyCode::ArrowLeft) {

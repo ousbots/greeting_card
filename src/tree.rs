@@ -5,14 +5,8 @@ use rand::Rng;
 use crate::{
     animation::AnimationConfig,
     flickering_light::FlickeringLight,
-    interaction::{Highlight, Interactable, InteractionEvent},
+    interaction::{Interactable, InteractionEvent, State},
 };
-
-#[derive(Clone, Component, Copy, PartialEq)]
-enum State {
-    Off,
-    On,
-}
 
 #[derive(Clone, Resource)]
 struct SpriteAssets {
@@ -55,10 +49,7 @@ pub fn add_systems(app: &mut App) {
         Update,
         (
             handle_animations,
-            handle_highlight,
-            handle_highlight_reset,
             handle_interaction,
-            handle_interaction_disable_highlight,
             handle_light.in_set(crate::flickering_light::LightInsertionSet),
         ),
     );
@@ -91,36 +82,6 @@ fn handle_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &m
     }
 }
 
-// Apply a pulsing scale effect to highlight the tree is interactable.
-fn handle_highlight(
-    time: Res<Time>,
-    query: Query<(&State, &mut Sprite, &mut Transform, &Highlight, &Interactable), (With<Tree>, With<Highlight>)>,
-) {
-    for (state, mut sprite, mut transform, highlight, interactable) in query {
-        if *state == State::Off && interactable.first {
-            let pulse = (((time.elapsed_secs() - highlight.elapsed_offset) * 4.).sin() + 1.).mul_add(0.1, 1.);
-            sprite.color = Color::srgba(pulse, pulse, pulse, 1.);
-            transform.scale = Vec3::splat(((pulse - 1.) / 4.) + 1.);
-        } else {
-            sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(1.);
-        }
-    }
-}
-
-// Reset the sprite when the highlight is removed.
-fn handle_highlight_reset(
-    mut removed: RemovedComponents<Highlight>,
-    mut query: Query<(&mut Sprite, &mut Transform), With<Tree>>,
-) {
-    for entity in removed.read() {
-        if let Ok((mut sprite, mut transform)) = query.get_mut(entity) {
-            sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(1.);
-        }
-    }
-}
-
 // Listen for interaction events and update the tree state.
 fn handle_interaction(
     sprite_assets: Res<SpriteAssets>,
@@ -147,17 +108,6 @@ fn handle_interaction(
                     sprite.texture_atlas = None;
                 }
             }
-        }
-    }
-}
-
-// Disable the highlighting after the first time the tree has been interacted with.
-fn handle_interaction_disable_highlight(
-    mut query: Query<(&mut State, &mut Interactable), (With<Tree>, Changed<State>)>,
-) {
-    for (state, mut interactable) in &mut query {
-        if *state == State::On {
-            interactable.first = false;
         }
     }
 }
@@ -223,7 +173,7 @@ fn init(
             id: INTERACTABLE_ID.to_string(),
             height: SPRITE_HEIGHT,
             width: SPRITE_WIDTH,
-            first: true,
+            ..default()
         },
         PointLight2d {
             color: LIGHT_COLORS[0],

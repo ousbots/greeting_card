@@ -2,14 +2,8 @@ use bevy::{audio::Volume, prelude::*};
 
 use crate::{
     animation::AnimationConfig,
-    interaction::{Highlight, Interactable, InteractionEvent},
+    interaction::{Interactable, InteractionEvent, State},
 };
-
-#[derive(Clone, Component, Copy, PartialEq)]
-enum State {
-    Off,
-    Running,
-}
 
 #[derive(Clone, Resource)]
 struct SpriteAssets {
@@ -30,17 +24,8 @@ const INTERACTABLE_ID: &str = "stereo";
 
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
-    app.add_systems(Startup, init).add_systems(
-        Update,
-        (
-            handle_animations,
-            handle_highlight,
-            handle_highlight_reset,
-            handle_interaction,
-            handle_interaction_disable_highlight,
-            handle_sound,
-        ),
-    );
+    app.add_systems(Startup, init)
+        .add_systems(Update, (handle_animations, handle_interaction, handle_sound));
 }
 
 // Manage the animation frame timing.
@@ -68,36 +53,6 @@ fn handle_animations(time: Res<Time>, mut query: Query<(&mut AnimationConfig, &m
     }
 }
 
-// Apply a pulsing scale effect to highlighted stereo.
-fn handle_highlight(
-    time: Res<Time>,
-    query: Query<(&State, &mut Sprite, &mut Transform, &Highlight, &Interactable), (With<Stereo>, With<Highlight>)>,
-) {
-    for (state, mut sprite, mut transform, highlight, interactable) in query {
-        if *state == State::Off && interactable.first {
-            let pulse = (((time.elapsed_secs() - highlight.elapsed_offset) * 4.).sin() + 1.).mul_add(0.1, 1.);
-            sprite.color = Color::srgba(pulse, pulse, pulse, 1.);
-            transform.scale = Vec3::splat(((pulse - 1.) / 4.) + 1.);
-        } else {
-            sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(1.);
-        }
-    }
-}
-
-// Reset sprite color when highlight is removed.
-fn handle_highlight_reset(
-    mut removed: RemovedComponents<Highlight>,
-    mut query: Query<(&mut Sprite, &mut Transform), With<Stereo>>,
-) {
-    for entity in removed.read() {
-        if let Ok((mut sprite, mut transform)) = query.get_mut(entity) {
-            sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(1.);
-        }
-    }
-}
-
 // Listen for interaction events and update the state.
 fn handle_interaction(
     sprite_assets: Res<SpriteAssets>,
@@ -110,7 +65,7 @@ fn handle_interaction(
         {
             match *state {
                 State::Off => {
-                    *state = State::Running;
+                    *state = State::On;
                     sprite.image = sprite_assets.running_sprite.clone();
                     sprite.texture_atlas = Some(TextureAtlas {
                         layout: sprite_assets.running_layout.clone(),
@@ -118,7 +73,7 @@ fn handle_interaction(
                     });
                 }
 
-                State::Running => {
+                State::On => {
                     *state = State::Off;
                     sprite.image = sprite_assets.off_sprite.clone();
                     sprite.texture_atlas = None;
@@ -128,22 +83,12 @@ fn handle_interaction(
     }
 }
 
-fn handle_interaction_disable_highlight(
-    mut query: Query<(&mut State, &mut Interactable), (With<Stereo>, Changed<State>)>,
-) {
-    for (state, mut interactable) in &mut query {
-        if *state == State::Running {
-            interactable.first = false;
-        }
-    }
-}
-
 // Control audio playback based on stereo state
 fn handle_sound(query: Query<(&State, &mut SpatialAudioSink), (With<Stereo>, Changed<State>)>) {
     for (state, audio_sink) in &query {
         match *state {
             // Start the stereo sound effect if it isn't already running.
-            State::Running => {
+            State::On => {
                 audio_sink.play();
             }
 
@@ -189,7 +134,7 @@ fn init(
             id: INTERACTABLE_ID.to_string(),
             height: SPRITE_HEIGHT,
             width: SPRITE_WIDTH,
-            first: true,
+            ..default()
         },
     ));
 }
