@@ -204,6 +204,7 @@ fn init(
             color: LIGHT_COLORS[0],
             intensity: 0.0,
             radius: LIGHT_RADIUS,
+            cast_shadows: true,
             ..default()
         },
     ));

@@ -31,7 +31,7 @@ fn init(mut commands: Commands) {
                 ..default()
             },
         },
-        Text::new("the scene"),
+        Text::new("move: left/right - interact: up"),
         Node {
             position_type: PositionType::Absolute,
             top: px(12),
