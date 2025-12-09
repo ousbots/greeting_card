@@ -26,16 +26,16 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         LightOccluder2d {
             shape: LightOccluder2dShape::Rectangle {
-                half_size: Vec2::new(190.0, 2.0),
+                half_size: Vec2::new(133.0, 1.0),
             },
         },
-        Transform::from_xyz(0.0, 10.0, 2.0),
+        Transform::from_xyz(4.0, 9.0, 2.0),
     ));
 
     commands.spawn((
         LightOccluder2d {
             shape: LightOccluder2dShape::Rectangle {
-                half_size: Vec2::new(2.0, 45.0),
+                half_size: Vec2::new(1.0, 45.0),
             },
         },
         Transform::from_xyz(-129.0, -35.0, 2.0),
@@ -44,7 +44,7 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         LightOccluder2d {
             shape: LightOccluder2dShape::Rectangle {
-                half_size: Vec2::new(2.0, 45.0),
+                half_size: Vec2::new(1.0, 45.0),
             },
         },
         Transform::from_xyz(138.0, -35.0, 2.0),
