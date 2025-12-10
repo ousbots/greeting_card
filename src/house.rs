@@ -49,4 +49,22 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Transform::from_xyz(138.0, -35.0, 2.0),
     ));
+
+    // Build a diagonal from horizontal pieces due to a bug where LightOccluder2d ignores transformations.
+    let x_offset: f32 = -130.0;
+    let y_offset: f32 = 10.0;
+    let slope: f32 = 1.28;
+    for point in 0..92i16 {
+        let x = f32::from(point).mul_add(slope, x_offset);
+        let y = (f32::from(point) / slope) + y_offset;
+
+        commands.spawn((
+            LightOccluder2d {
+                shape: LightOccluder2dShape::Rectangle {
+                    half_size: Vec2::new(1.0, 1.0),
+                },
+            },
+            Transform::from_xyz(x, y, 2.0),
+        ));
+    }
 }
