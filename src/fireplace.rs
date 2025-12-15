@@ -23,8 +23,8 @@ const INTERACTABLE_ID: &str = "fireplace";
 const VOLUME_LEVEL: f32 = 0.9;
 
 // Sprite parameters.
-const SPRITE_WIDTH: f32 = 8.;
-const SPRITE_HEIGHT: f32 = 16.;
+const SPRITE_WIDTH: f32 = 32.;
+const SPRITE_HEIGHT: f32 = 50.;
 
 // Light effect parameters.
 const LIGHT_RADIUS: f32 = 120.0;
@@ -173,7 +173,7 @@ fn init(
     // Load the running sprite sheet.
     let sprite = SpriteAssets {
         running_sprite: asset_server.load("fireplace/fireplace_animation.png"),
-        running_layout: texture_layouts.add(TextureAtlasLayout::from_grid(UVec2::splat(64), 5, 1, None, None)),
+        running_layout: texture_layouts.add(TextureAtlasLayout::from_grid(UVec2::new(64, 78), 5, 1, None, None)),
         off_sprite: asset_server.load("fireplace/fireplace.png"),
     };
     commands.insert_resource(sprite.clone());
@@ -185,7 +185,7 @@ fn init(
             texture_atlas: None,
             ..default()
         },
-        Transform::from_translation(Vec3::new(0.0, -38.0, 5.0)),
+        Transform::from_translation(Vec3::new(0.0, -31.0, 5.0)),
         Fireplace,
         AnimationConfig::new(0, 4, 6),
         State::Off,
