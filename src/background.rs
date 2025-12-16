@@ -5,9 +5,10 @@ use bevy_light_2d::prelude::*;
 struct Background;
 
 #[derive(Component)]
-struct Snow {
+struct SnowMovement {
     timer: Timer,
-    rise: u32,
+    rise: f32,
+    progress: f32,
 }
 
 // Add the animation systems.
@@ -16,15 +17,16 @@ pub fn add_systems(app: &mut App) {
 }
 
 // Handle the snow rising over time.
-fn handle_snow(time: Res<Time>, mut query: Query<(&mut Snow, &mut Transform), With<Background>>) {
-    for (mut snow, mut transform) in &mut query {
-        if snow.rise > 0 {
-            snow.timer.tick(time.delta());
+fn handle_snow(time: Res<Time>, mut commands: Commands, mut query: Query<(Entity, &mut SnowMovement, &mut Transform)>) {
+    for (entity, mut snow, mut transform) in &mut query {
+        snow.timer.tick(time.delta());
 
-            if snow.timer.just_finished() {
-                transform.translation.y += 1.0;
-                snow.rise -= 1;
-            }
+        let progress = snow.timer.fraction();
+        transform.translation.y += (progress - snow.progress) * snow.rise;
+        snow.progress = progress;
+
+        if snow.timer.just_finished() {
+            commands.entity(entity).remove::<SnowMovement>();
         }
     }
 }
@@ -42,18 +44,19 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
         Background,
     ));
 
-    // Snow on the ground.
+    // Snow on the ground, z = 1.5 to be in front of the falling snow.
     let snow = asset_server.load("snow.png");
     commands.spawn((
         Sprite {
             image: snow,
             ..default()
         },
-        Transform::from_xyz(0.0, -75.0, 0.5),
+        Transform::from_xyz(0.0, -75.0, 1.5),
         Background,
-        Snow {
-            timer: Timer::from_seconds(60.0, TimerMode::Repeating),
-            rise: 15,
+        SnowMovement {
+            timer: Timer::from_seconds(60.0 * 2.0, TimerMode::Once),
+            rise: 15.0,
+            progress: 0.0,
         },
     ));
 
