@@ -34,7 +34,7 @@ fn handle_snow(time: Res<Time>, mut commands: Commands, mut query: Query<(Entity
 // Background initialization.
 fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Background.
-    let background = asset_server.load("background.png");
+    let background = asset_server.load("background/background.png");
     commands.spawn((
         Sprite {
             image: background,
@@ -45,7 +45,7 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
     ));
 
     // Snow on the ground, z = 1.5 to be in front of the falling snow.
-    let snow = asset_server.load("snow.png");
+    let snow = asset_server.load("background/snow.png");
     commands.spawn((
         Sprite {
             image: snow,
