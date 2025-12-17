@@ -17,7 +17,7 @@ struct Stereo;
 
 const RUNNING_VOLUME: f32 = 0.9;
 
-const SPRITE_WIDTH: f32 = 20.;
+const SPRITE_WIDTH: f32 = 18.;
 const SPRITE_HEIGHT: f32 = 16.;
 
 const INTERACTABLE_ID: &str = "stereo";

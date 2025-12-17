@@ -5,7 +5,8 @@ use crate::interaction::{Interactable, State};
 #[derive(Component)]
 struct Chair;
 
-const SPRITE_WIDTH: f32 = 12.;
+// NOTE: not sure why the chair width is so weird.
+const SPRITE_WIDTH: f32 = -5.;
 const SPRITE_HEIGHT: f32 = 16.;
 
 const INTERACTABLE_ID: &str = "chair";
