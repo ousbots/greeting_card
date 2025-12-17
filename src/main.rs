@@ -2,6 +2,7 @@
 
 mod animation;
 mod app;
+mod attic_light;
 mod background;
 mod camera;
 mod chair;

@@ -77,17 +77,17 @@ fn aabb_overlap(pos_1: Vec2, width_1: f32, height_1: f32, pos_2: Vec2, width_2: 
 fn detect_overlaps(
     time: Res<Time>,
     mut commands: Commands,
-    mut interactables: Query<(Entity, &State, &Transform, &mut Interactable)>,
-    interactors: Query<(&Transform, &Interactor)>,
+    mut interactables: Query<(Entity, &State, &GlobalTransform, &mut Interactable)>,
+    interactors: Query<(&GlobalTransform, &Interactor)>,
     in_range: Query<(Entity, &InRange)>,
 ) {
     for (interactable_entity, interactable_state, interactable_transform, interactable) in &mut interactables {
         for (interactor_transform, interactor) in &interactors {
             let overlaping = aabb_overlap(
-                interactor_transform.translation.truncate(),
+                interactor_transform.translation().truncate(),
                 interactor.width,
                 interactor.height,
-                interactable_transform.translation.truncate(),
+                interactable_transform.translation().truncate(),
                 interactable.width,
                 interactable.height,
             );
