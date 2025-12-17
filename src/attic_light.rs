@@ -13,6 +13,12 @@ struct AudioAssets {
     off: Handle<AudioSource>,
 }
 
+#[derive(Clone, Resource)]
+struct SpriteAssets {
+    on: Handle<Image>,
+    off: Handle<Image>,
+}
+
 #[derive(Component)]
 struct AtticLight;
 
@@ -77,21 +83,25 @@ fn handle_interaction(mut events: MessageReader<InteractionEvent>, mut query: Qu
 fn handle_light(
     mut commands: Commands,
     audio_assets: Res<AudioAssets>,
-    parent_query: Query<(&Children, &State), (With<AtticLight>, Changed<State>)>,
+    sprite_assets: Res<SpriteAssets>,
+    parent_query: Query<(&Children, &State, &mut Sprite), (With<AtticLight>, Changed<State>)>,
     mut light_query: Query<(Entity, &mut PointLight2d)>,
 ) {
     let mut rng = rand::rng();
 
     // Find the child light entity.
-    for (children, state) in &parent_query {
+    for (children, state, mut sprite) in parent_query {
         for child in children.iter() {
             if let Ok((entity, mut light)) = light_query.get_mut(child) {
                 match *state {
                     State::On => {
+                        sprite.image = sprite_assets.on.clone();
+
                         commands.spawn((
                             AudioPlayer::new(audio_assets.on.clone()),
                             PlaybackSettings::DESPAWN.with_volume(Volume::Linear(SWITCH_VOLUME)),
                         ));
+
                         commands.entity(entity).insert(FlickeringLight {
                             seed: rng.random_range(0.0..1000.0),
                             intensity_amplitude: INTENSITY_AMPLITUDE,
@@ -107,10 +117,13 @@ fn handle_light(
                         });
                     }
                     State::Off => {
+                        sprite.image = sprite_assets.off.clone();
+
                         commands.spawn((
                             AudioPlayer::new(audio_assets.off.clone()),
                             PlaybackSettings::DESPAWN.with_volume(Volume::Linear(SWITCH_VOLUME)),
                         ));
+
                         commands.entity(entity).remove::<FlickeringLight>();
                         light.intensity = 0.0;
                     }
@@ -122,6 +135,13 @@ fn handle_light(
 
 // Attic light initialization.
 fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // Load the sprite sheets.
+    let sprites = SpriteAssets {
+        on: asset_server.load("house/light_switch_on.png"),
+        off: asset_server.load("house/light_switch_off.png"),
+    };
+    commands.insert_resource(sprites.clone());
+
     let audio = AudioAssets {
         on: asset_server.load("house/light_switch_on.ogg"),
         off: asset_server.load("house/light_switch_off.ogg"),
@@ -133,8 +153,11 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn((
             AtticLight,
             State::Off,
-            Sprite::default(),
-            Transform::from_xyz(149.0, -54.0, 5.0),
+            Sprite {
+                image: sprites.off,
+                ..default()
+            },
+            Transform::from_xyz(149.0, -50.0, 5.0),
             Interactable {
                 id: INTERACTABLE_ID.to_string(),
                 height: SPRITE_HEIGHT,
@@ -144,10 +167,10 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .id();
 
-    // Spawn light, Local offset (-21, 114, 0) → Global position (128, 60, 5)
+    // Spawn light, Local offset (-21, 110, 0) → Global position (128, 60, 5)
     let light = commands
         .spawn((
-            Transform::from_xyz(-21.0, 114.0, 0.0),
+            Transform::from_xyz(-21.0, 110.0, 0.0),
             PointLight2d {
                 color: LIGHT_COLORS[0],
                 intensity: 0.0,
