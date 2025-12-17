@@ -4,6 +4,7 @@ mod animation;
 mod app;
 mod background;
 mod camera;
+mod chair;
 mod fireplace;
 mod flickering_light;
 mod house;

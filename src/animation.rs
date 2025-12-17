@@ -29,6 +29,7 @@ impl AnimationConfig {
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
     background::add_systems(app);
+    chair::add_systems(app);
     interaction::add_systems(app);
     flickering_light::add_systems(app);
     house::add_systems(app);
