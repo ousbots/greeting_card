@@ -11,12 +11,12 @@ struct SnowParticle {
 #[derive(Component)]
 struct Snow;
 
-const PARTICLE_COUNT: usize = 1000;
+const PARTICLE_COUNT: usize = 700;
 
 const SPAWN_Y: f32 = 100.0;
 const DESPAWN_Y: f32 = -80.0;
 const SPAWN_X_MIN: f32 = -150.0;
-const SPAWN_X_MAX: f32 = 150.0;
+const SPAWN_X_MAX: f32 = 75.0;
 
 const FALL_SPEED_MIN: f32 = 10.0;
 const FALL_SPEED_MAX: f32 = 30.0;
