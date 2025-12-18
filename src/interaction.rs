@@ -54,7 +54,7 @@ pub fn add_systems(app: &mut App) {
 }
 
 // Axis-Aligned Bounding Box overlap detection.
-fn aabb_overlap(pos_1: Vec2, width_1: f32, height_1: f32, pos_2: Vec2, width_2: f32, height_2: f32) -> bool {
+pub fn aabb_overlap(pos_1: Vec2, width_1: f32, height_1: f32, pos_2: Vec2, width_2: f32, height_2: f32) -> bool {
     let half_width_1 = width_1 / 2.0;
     let half_height_1 = height_1 / 2.0;
     let half_width_2 = width_2 / 2.0;

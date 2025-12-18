@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::interaction::{Highlight, Interactable, aabb_overlap};
+
 // Click component for click feedback sprite.
 #[derive(Component)]
 struct Click;
@@ -9,7 +11,7 @@ struct Click;
 struct ClickFade(Timer);
 
 // Input directions.
-#[derive(Component, Clone, Copy, Debug, PartialEq)]
+#[derive(Component, Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Direction {
     Left,
     Right,
@@ -26,11 +28,17 @@ pub struct InputEvent {
 #[derive(Clone, Copy, Debug)]
 pub struct InputTarget {
     pub x: f32,
-    pub y: f32,
 }
 
+// Cursor size for aabb detection.
+const CURSOR_SIZE: f32 = 0.1;
+
+// Initialize input systems.
 pub fn add_systems(app: &mut App) {
-    app.add_systems(Update, (handle_fade, handle_keys, handle_mouse_input));
+    app.add_systems(
+        Update,
+        (handle_fade, handle_keys, handle_mouse_input, detect_mouse_hover),
+    );
 }
 
 // Fade marker alpha over time
@@ -55,7 +63,7 @@ fn handle_fade(
     }
 }
 
-// Handle key input and send input events.
+// Handle key input and send events.
 fn handle_keys(keyboard: Res<ButtonInput<KeyCode>>, mut input_events: MessageWriter<InputEvent>) {
     // Check for key presses.
     if keyboard.just_pressed(KeyCode::ArrowLeft) {
@@ -89,7 +97,7 @@ fn handle_keys(keyboard: Res<ButtonInput<KeyCode>>, mut input_events: MessageWri
     }
 }
 
-// Handle mouse input and send input events.
+// Handle mouse input and send events.
 fn handle_mouse_input(
     mut commands: Commands,
     mouse_input: Res<ButtonInput<MouseButton>>,
@@ -113,10 +121,7 @@ fn handle_mouse_input(
         };
 
         input_events.write(InputEvent {
-            target: Some(InputTarget {
-                x: world_pos.x,
-                y: world_pos.y,
-            }),
+            target: Some(InputTarget { x: world_pos.x }),
             ..default()
         });
 
@@ -130,5 +135,57 @@ fn handle_mouse_input(
             Click,
             ClickFade(Timer::from_seconds(1.0, TimerMode::Once)),
         ));
+    }
+}
+
+// Detect mouse hover over interactable entities and add/remove Highlight component.
+fn detect_mouse_hover(
+    time: Res<Time>,
+    mut commands: Commands,
+    windows: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
+    highlighted: Query<&Highlight>,
+) {
+    // Convert cursor position to world coordinates.
+    let Ok(window) = windows.single() else {
+        return;
+    };
+    let Some(cursor_pos) = window.cursor_position() else {
+        return;
+    };
+    let Ok((camera, camera_transform)) = camera_query.single() else {
+        return;
+    };
+    let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
+        return;
+    };
+
+    // Check each interactable for overlap with cursor.
+    for (entity, transform, interactable) in &interactables {
+        let overlapping = aabb_overlap(
+            world_pos,
+            CURSOR_SIZE,
+            CURSOR_SIZE,
+            transform.translation().truncate(),
+            interactable.width,
+            interactable.height,
+        );
+
+        let currently_highlighted = highlighted.contains(entity);
+
+        match (currently_highlighted, overlapping) {
+            // New hover - add highlight if conditions met.
+            (false, true) => {
+                commands.entity(entity).insert(Highlight {
+                    elapsed_offset: time.elapsed_secs(),
+                });
+            }
+            // Hover ended - remove highlight.
+            (true, false) => {
+                commands.entity(entity).remove::<Highlight>();
+            }
+            _ => {}
+        }
     }
 }
