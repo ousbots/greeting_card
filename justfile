@@ -10,3 +10,9 @@ build-web:
         -Oz \
         -o ./web/wasm/greeting_card_bg.wasm \
         ./web/wasm/greeting_card_bg.wasm
+
+run-web: build-web
+    python3 -m http.server 8888
+
+stats:
+    tokei .
