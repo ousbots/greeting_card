@@ -32,13 +32,22 @@ fn init(mut commands: Commands) {
         },
     ));
 
-    // Display help UI in the upper left.
+    // Display help UI in the upper right.
     commands.spawn((
         Text::new("move: left/right - interact: up"),
         Node {
             position_type: PositionType::Absolute,
             top: px(12),
             right: px(12),
+            ..default()
+        },
+    ));
+    commands.spawn((
+        Text::new("or click to move and interact"),
+        Node {
+            position_type: PositionType::Absolute,
+            top: px(35),
+            right: px(24),
             ..default()
         },
     ));
