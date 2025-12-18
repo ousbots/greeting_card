@@ -412,7 +412,7 @@ fn init(
         FootStep::Left,
         SpatialListener::new(AUDIO_WIDTH),
         Interactor {
-            width: 32.0,
+            width: 13.0,
             height: 32.0,
         },
     ));

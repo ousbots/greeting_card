@@ -25,8 +25,8 @@ struct AtticLight;
 const INTERACTABLE_ID: &str = "attic-light";
 
 // Sprite parameters.
-const SPRITE_WIDTH: f32 = 2.0;
-const SPRITE_HEIGHT: f32 = 16.0;
+const SPRITE_WIDTH: f32 = 3.0;
+const SPRITE_HEIGHT: f32 = 4.0;
 
 const SWITCH_VOLUME: f32 = 0.40;
 

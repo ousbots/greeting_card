@@ -20,8 +20,8 @@ struct Tree;
 
 const INTERACTABLE_ID: &str = "tree";
 
-const SPRITE_WIDTH: f32 = 19.;
-const SPRITE_HEIGHT: f32 = 16.;
+const SPRITE_WIDTH: f32 = 50.;
+const SPRITE_HEIGHT: f32 = 64.;
 
 const LIGHT_RADIUS: f32 = 50.0;
 const LIGHT_COLORS: [Color; 4] = [

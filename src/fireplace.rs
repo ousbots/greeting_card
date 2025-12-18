@@ -23,8 +23,8 @@ const INTERACTABLE_ID: &str = "fireplace";
 const VOLUME_LEVEL: f32 = 0.75;
 
 // Sprite parameters.
-const SPRITE_WIDTH: f32 = 16.;
-const SPRITE_HEIGHT: f32 = 30.;
+const SPRITE_WIDTH: f32 = 48.;
+const SPRITE_HEIGHT: f32 = 78.;
 
 // Light effect parameters.
 const LIGHT_RADIUS: f32 = 180.0;
@@ -185,7 +185,7 @@ fn init(
             texture_atlas: None,
             ..default()
         },
-        Transform::from_translation(Vec3::new(120.0, -31.0, 5.0)),
+        Transform::from_translation(Vec3::new(118.0, -31.0, 5.0)),
         Fireplace,
         AnimationConfig::new(0, 4, 6),
         State::Off,
