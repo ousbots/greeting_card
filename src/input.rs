@@ -28,6 +28,7 @@ pub struct InputEvent {
 #[derive(Clone, Copy, Debug)]
 pub struct InputTarget {
     pub x: f32,
+    pub action: bool,
 }
 
 // Cursor size for aabb detection.
@@ -103,6 +104,7 @@ fn handle_mouse_input(
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    interactables: Query<(&GlobalTransform, &Interactable)>,
     mut input_events: MessageWriter<InputEvent>,
 ) {
     if mouse_input.just_pressed(MouseButton::Left) {
@@ -120,8 +122,22 @@ fn handle_mouse_input(
             return;
         };
 
+        let action: bool = interactables.iter().any(|(transform, interactable)| {
+            aabb_overlap(
+                world_pos,
+                CURSOR_SIZE,
+                CURSOR_SIZE,
+                transform.translation().truncate(),
+                interactable.width,
+                interactable.height,
+            )
+        });
+
         input_events.write(InputEvent {
-            target: Some(InputTarget { x: world_pos.x }),
+            target: Some(InputTarget {
+                x: world_pos.x,
+                action: action,
+            }),
             ..default()
         });
 

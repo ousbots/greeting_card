@@ -30,8 +30,9 @@ struct IdleTimer(Timer);
 struct StepTimer(Timer);
 
 #[derive(Component)]
-pub struct Navigation {
-    pub x: f32,
+struct Navigation {
+    x: f32,
+    action: bool,
 }
 
 #[derive(Clone, Resource)]
@@ -255,7 +256,10 @@ fn handle_messages(
                     Direction::Up
                 };
 
-                commands.entity(entity).insert(Navigation { x: target.x });
+                commands.entity(entity).insert(Navigation {
+                    x: target.x,
+                    action: target.action,
+                });
 
                 match event_direction {
                     Direction::Right => {
@@ -310,7 +314,7 @@ fn handle_movement(
                     && ((*direction == Direction::Left && transform.translation.x <= target.x)
                         || (*direction == Direction::Right && transform.translation.x >= target.x))
                 {
-                    *state = State::Idle;
+                    *state = if target.action { State::Action } else { State::Idle };
                     commands.entity(entity).remove::<Navigation>();
                     continue;
                 }
@@ -337,18 +341,17 @@ fn handle_movement(
 // Return the man to the idle state after a Navigation component was removed.
 fn handle_navigation_finished(
     sprite_assets: Res<SpriteAssets>,
-    mut query: Query<(&mut Sprite, &mut State, &Direction), With<TheMan>>,
+    mut query: Query<(&mut Sprite, &Direction), With<TheMan>>,
     mut removed: RemovedComponents<Navigation>,
 ) {
     for entity in removed.read() {
-        if let Ok((mut sprite, mut state, direction)) = query.get_mut(entity) {
+        if let Ok((mut sprite, direction)) = query.get_mut(entity) {
             sprite.image = sprite_assets.standing_sprite.clone();
             sprite.texture_atlas = Some(TextureAtlas {
                 layout: sprite_assets.standing_layout.clone(),
                 index: 0,
             });
             sprite.flip_x = *direction == Direction::Left;
-            *state = State::Action;
         }
     }
 }
