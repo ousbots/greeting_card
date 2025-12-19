@@ -11,6 +11,9 @@ struct SnowParticle {
 #[derive(Component)]
 struct Snow;
 
+#[derive(Component)]
+struct Respawn;
+
 const PARTICLE_COUNT: usize = 700;
 
 const SPAWN_Y: f32 = 100.0;
@@ -33,9 +36,13 @@ pub fn add_systems(app: &mut App) {
         .add_systems(Update, (handle_snow, handle_snow_respawn));
 }
 
-// Handle snow particle movement with vertical falling and horizontal wind drift.
-fn handle_snow(time: Res<Time>, mut query: Query<(&mut Transform, &SnowParticle), With<Snow>>) {
-    for (mut transform, particle) in &mut query {
+// Handle snow particle movement with vertical falling and horizontal wind drift and mark particles that are too low.
+fn handle_snow(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Transform, &SnowParticle), (With<Snow>, Without<Respawn>)>,
+) {
+    for (entity, mut transform, particle) in &mut query {
         let delta = time.delta_secs();
 
         // Vertical fall with a constant speed per particle.
@@ -44,25 +51,32 @@ fn handle_snow(time: Res<Time>, mut query: Query<(&mut Transform, &SnowParticle)
         // Horizontal drift with a sine wave for motion.
         let drift_offset = (time.elapsed_secs() + particle.drift_phase).sin();
         transform.translation.x += particle.drift_speed * drift_offset * delta;
+
+        if transform.translation.y < DESPAWN_Y {
+            commands.entity(entity).insert(Respawn);
+        }
     }
 }
 
-// Respawn snow particles that have fallen below the screen.
-fn handle_snow_respawn(mut query: Query<(&mut Transform, &mut Sprite, &mut SnowParticle), With<Snow>>) {
+// Respawn snow particles that have been marked as below the screen.
+fn handle_snow_respawn(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &mut Sprite, &mut SnowParticle), (With<Snow>, With<Respawn>)>,
+) {
     let mut rng = rand::rng();
 
-    for (mut transform, mut sprite, mut particle) in &mut query {
-        if transform.translation.y < DESPAWN_Y {
-            transform.translation.x = rng.random_range(SPAWN_X_MIN..=SPAWN_X_MAX);
-            transform.translation.y = SPAWN_Y;
+    for (entity, mut transform, mut sprite, mut particle) in &mut query {
+        transform.translation.x = rng.random_range(SPAWN_X_MIN..=SPAWN_X_MAX);
+        transform.translation.y = SPAWN_Y;
 
-            particle.fall_speed = rng.random_range(FALL_SPEED_MIN..=FALL_SPEED_MAX);
-            particle.drift_speed = rng.random_range(DRIFT_SPEED_MIN..=DRIFT_SPEED_MAX);
-            particle.drift_phase = rng.random_range(0.0..=std::f32::consts::TAU);
+        particle.fall_speed = rng.random_range(FALL_SPEED_MIN..=FALL_SPEED_MAX);
+        particle.drift_speed = rng.random_range(DRIFT_SPEED_MIN..=DRIFT_SPEED_MAX);
+        particle.drift_phase = rng.random_range(0.0..=std::f32::consts::TAU);
 
-            let opacity = rng.random_range(OPACITY_MIN..=OPACITY_MAX);
-            sprite.color = Color::srgba(1.0, 1.0, 1.0, opacity);
-        }
+        let opacity = rng.random_range(OPACITY_MIN..=OPACITY_MAX);
+        sprite.color = Color::srgba(1.0, 1.0, 1.0, opacity);
+
+        commands.entity(entity).remove::<Respawn>();
     }
 }
 
