@@ -4,7 +4,7 @@ use rand::Rng;
 
 use crate::{
     flickering_light::FlickeringLight,
-    interaction::{Interactable, InteractionEvent, State},
+    interaction::{InRange, Interactable, InteractionEvent, State},
 };
 
 #[derive(Clone, Resource)]
@@ -24,30 +24,14 @@ struct AtticLight;
 
 const INTERACTABLE_ID: &str = "attic-light";
 
-// Sprite parameters.
-const SPRITE_WIDTH: f32 = 3.0;
-const SPRITE_HEIGHT: f32 = 4.0;
-
 const SWITCH_VOLUME: f32 = 0.40;
 
-// Light effect parameters.
-const LIGHT_RADIUS: f32 = 160.0;
+// Light effect colors.
 const LIGHT_COLORS: [Color; 3] = [
     Color::srgb(1.0, 0.6, 0.2),
     Color::srgb(1.0, 0.7, 0.1),
     Color::srgb(1.0, 0.5, 0.3),
 ];
-
-const INTENSITY_OCTAVES: u32 = 4;
-const COLOR_OCTAVES: u32 = 5;
-
-const INTENSITY_FREQ: f32 = 2.0;
-const INTENSITY_MIN: f32 = 0.4;
-const INTENSITY_AMPLITUDE: f32 = 0.2;
-
-const COLOR_FREQ: f32 = 100.0;
-const COLOR_TEMPERATURE: f32 = 0.5;
-const COLOR_SEED_OFFSET: f32 = 100.0;
 
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
@@ -84,7 +68,7 @@ fn handle_light(
     mut commands: Commands,
     audio_assets: Res<AudioAssets>,
     sprite_assets: Res<SpriteAssets>,
-    parent_query: Query<(&Children, &State, &mut Sprite), (With<AtticLight>, Changed<State>)>,
+    parent_query: Query<(&Children, &State, &mut Sprite), (With<AtticLight>, With<InRange>, Changed<State>)>,
     mut light_query: Query<(Entity, &mut PointLight2d)>,
 ) {
     let mut rng = rand::rng();
@@ -104,14 +88,14 @@ fn handle_light(
 
                         commands.entity(entity).insert(FlickeringLight {
                             seed: rng.random_range(0.0..1000.0),
-                            intensity_amplitude: INTENSITY_AMPLITUDE,
-                            intensity_frequency: INTENSITY_FREQ,
-                            intensity_min: INTENSITY_MIN,
-                            intensity_octaves: INTENSITY_OCTAVES,
-                            color_frequency: COLOR_FREQ,
-                            color_octaves: COLOR_OCTAVES,
-                            color_seed_offset: COLOR_SEED_OFFSET,
-                            color_temperature: COLOR_TEMPERATURE,
+                            intensity_amplitude: 0.2,
+                            intensity_frequency: 2.0,
+                            intensity_min: 0.4,
+                            intensity_octaves: 4,
+                            color_frequency: 100.0,
+                            color_octaves: 5,
+                            color_seed_offset: 100.0,
+                            color_temperature: 0.5,
                             colors: LIGHT_COLORS.to_vec(),
                             time_offset: rng.random_range(0.0..100.0),
                         });
@@ -157,24 +141,24 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
                 image: sprites.off,
                 ..default()
             },
-            Transform::from_xyz(149.0, -50.0, 5.0),
+            Transform::from_xyz(148.0, -50.0, 5.0),
             Interactable {
                 id: INTERACTABLE_ID.to_string(),
-                height: SPRITE_HEIGHT,
-                width: SPRITE_WIDTH,
+                height: 4.0,
+                width: 3.0,
                 ..default()
             },
         ))
         .id();
 
-    // Spawn light, Local offset (-21, 110, 0) → Global position (128, 60, 5)
+    // Spawn light, Local offset from switch (-21, 110, 0) → Global position (128, 60, 5)
     let light = commands
         .spawn((
-            Transform::from_xyz(-21.0, 110.0, 0.0),
+            Transform::from_xyz(-20.0, 110.0, 0.0),
             PointLight2d {
                 color: LIGHT_COLORS[0],
                 intensity: 0.0,
-                radius: LIGHT_RADIUS,
+                radius: 160.0,
                 cast_shadows: true,
                 ..default()
             },
