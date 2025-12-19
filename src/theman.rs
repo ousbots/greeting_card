@@ -56,12 +56,7 @@ pub struct TheMan;
 
 const WALKING_SPEED: f32 = 30.0;
 const WALKING_VOLUME: f32 = 0.85;
-
 const WALKING_TIMER: f32 = 0.45;
-const WALKING_TIMER_DELAY: f32 = 0.225;
-
-// NOTE: not sure why the audio width needs to be negative to sound right.
-const AUDIO_WIDTH: f32 = -10.0;
 
 // Add the animation systems.
 pub fn add_systems(app: &mut App) {
@@ -208,7 +203,7 @@ fn handle_audio(
                 }
             }
             _ => {
-                timer.0.set_duration(Duration::from_secs_f32(WALKING_TIMER_DELAY));
+                timer.0.set_duration(Duration::from_secs_f32(0.225));
             }
         }
     }
@@ -383,11 +378,13 @@ fn handle_movement(
                 match *direction {
                     Direction::Left => {
                         transform.translation.x -= WALKING_SPEED * time.delta_secs();
+                        transform.translation.x = transform.translation.x.max(-82.0);
                         transform.translation.z = 10.0;
                     }
 
                     Direction::Right => {
                         transform.translation.x += WALKING_SPEED * time.delta_secs();
+                        transform.translation.x = transform.translation.x.min(160.0);
                         transform.translation.z = 10.0;
                     }
 
@@ -460,7 +457,8 @@ fn init(
         StepTimer(Timer::from_seconds(0.0, TimerMode::Repeating)),
         Direction::Right,
         FootStep::Left,
-        SpatialListener::new(AUDIO_WIDTH),
+        // NOTE: not sure why the audio width needs to be negative to sound right.
+        SpatialListener::new(-10.0),
         Interactor {
             width: 13.0,
             height: 32.0,
