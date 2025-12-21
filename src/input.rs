@@ -1,3 +1,4 @@
+use bevy::input::touch::Touches;
 use bevy::prelude::*;
 
 use crate::interaction::{Highlight, Interactable, aabb_overlap};
@@ -10,10 +11,10 @@ struct Click;
 #[derive(Component)]
 struct ClickFade(Timer);
 
-// Cursor world position to cache the calculation.
+// Input positions from cursor and touch input.
 #[derive(Resource, Default)]
-struct CursorWorldPosition {
-    position: Option<Vec2>,
+struct InputWorldPositions {
+    positions: Vec<Vec2>,
 }
 
 // Input directions.
@@ -42,16 +43,55 @@ const CURSOR_SIZE: f32 = 0.1;
 
 // Initialize input systems.
 pub fn add_systems(app: &mut App) {
-    app.init_resource::<CursorWorldPosition>().add_systems(
+    app.init_resource::<InputWorldPositions>().add_systems(
         Update,
         (
             handle_fade,
             handle_keys,
             handle_mouse_input,
-            update_cursor_position.before(detect_mouse_hover),
-            detect_mouse_hover,
+            handle_touch_input,
+            update_input_positions.before(detect_hover),
+            detect_hover,
         ),
     );
+}
+
+// Process a world-space click/tap and emit appropriate events.
+fn process_world_click(
+    commands: &mut Commands,
+    world_pos: Vec2,
+    interactables: &Query<(&GlobalTransform, &Interactable)>,
+    input_events: &mut MessageWriter<InputEvent>,
+) {
+    let action: bool = interactables.iter().any(|(transform, interactable)| {
+        aabb_overlap(
+            world_pos,
+            CURSOR_SIZE,
+            CURSOR_SIZE,
+            transform.translation().truncate(),
+            interactable.width,
+            interactable.height,
+        )
+    });
+
+    input_events.write(InputEvent {
+        target: Some(InputTarget {
+            x: world_pos.x,
+            action: action,
+        }),
+        ..default()
+    });
+
+    commands.spawn((
+        Sprite {
+            color: Color::srgba(1.0, 1.0, 0.0, 0.8),
+            custom_size: Some(Vec2::splat(3.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, 10.0)),
+        Click,
+        ClickFade(Timer::from_seconds(1.0, TimerMode::Once)),
+    ));
 }
 
 // Fade marker alpha over time
@@ -134,9 +174,80 @@ fn handle_mouse_input(
             return;
         };
 
-        let action: bool = interactables.iter().any(|(transform, interactable)| {
+        process_world_click(&mut commands, world_pos, &interactables, &mut input_events);
+    }
+}
+
+// Handle touch input and send events.
+fn handle_touch_input(
+    mut commands: Commands,
+    touches: Res<Touches>,
+    windows: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    interactables: Query<(&GlobalTransform, &Interactable)>,
+    mut input_events: MessageWriter<InputEvent>,
+) {
+    for touch in touches.iter_just_pressed() {
+        // Convert touch position to world coordinates.
+        let Ok(_window) = windows.single() else {
+            continue;
+        };
+        let touch_pos = touch.position();
+        let Ok((camera, camera_transform)) = camera_query.single() else {
+            continue;
+        };
+        let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, touch_pos) else {
+            continue;
+        };
+
+        process_world_click(&mut commands, world_pos, &interactables, &mut input_events);
+    }
+}
+
+// Update the input world positions.
+fn update_input_positions(
+    mut inputs: ResMut<InputWorldPositions>,
+    touches: Res<Touches>,
+    windows: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+) {
+    inputs.positions.clear();
+
+    let Ok(window) = windows.single() else {
+        return;
+    };
+    let Ok((camera, camera_transform)) = camera_query.single() else {
+        return;
+    };
+
+    // Add cursor position if present.
+    if let Some(cursor_pos) = window.cursor_position()
+        && let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos)
+    {
+        inputs.positions.push(world_pos);
+    }
+
+    // Add all active touch positions.
+    for touch in touches.iter() {
+        let touch_pos = touch.position();
+        if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, touch_pos) {
+            inputs.positions.push(world_pos);
+        }
+    }
+}
+
+// Detect overlap with interactable entities from any input and add or remove a Highlight component.
+fn detect_hover(
+    time: Res<Time>,
+    mut commands: Commands,
+    inputs: Res<InputWorldPositions>,
+    interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
+    highlighted: Query<&Highlight>,
+) {
+    for (entity, transform, interactable) in &interactables {
+        let overlapping = inputs.positions.iter().any(|&input_pos| {
             aabb_overlap(
-                world_pos,
+                input_pos,
                 CURSOR_SIZE,
                 CURSOR_SIZE,
                 transform.translation().truncate(),
@@ -144,77 +255,6 @@ fn handle_mouse_input(
                 interactable.height,
             )
         });
-
-        input_events.write(InputEvent {
-            target: Some(InputTarget {
-                x: world_pos.x,
-                action: action,
-            }),
-            ..default()
-        });
-
-        commands.spawn((
-            Sprite {
-                color: Color::srgba(1.0, 1.0, 0.0, 0.8),
-                custom_size: Some(Vec2::splat(3.0)),
-                ..default()
-            },
-            Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, 10.0)),
-            Click,
-            ClickFade(Timer::from_seconds(1.0, TimerMode::Once)),
-        ));
-    }
-}
-
-// Update the cursor world position.
-fn update_cursor_position(
-    mut cursor_res: ResMut<CursorWorldPosition>,
-    windows: Query<&Window>,
-    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
-) {
-    let Ok(window) = windows.single() else {
-        cursor_res.position = None;
-        return;
-    };
-    let Some(cursor_pos) = window.cursor_position() else {
-        cursor_res.position = None;
-        return;
-    };
-    let Ok((camera, camera_transform)) = camera_query.single() else {
-        cursor_res.position = None;
-        return;
-    };
-    let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
-        cursor_res.position = None;
-        return;
-    };
-
-    cursor_res.position = Some(world_pos);
-}
-
-// Detect mouse hover over interactable entities and add/remove Highlight component.
-fn detect_mouse_hover(
-    time: Res<Time>,
-    mut commands: Commands,
-    cursor_res: Res<CursorWorldPosition>,
-    interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
-    highlighted: Query<&Highlight>,
-) {
-    // Use cached cursor world position.
-    let Some(world_pos) = cursor_res.position else {
-        return;
-    };
-
-    // Check each interactable for overlap with cursor.
-    for (entity, transform, interactable) in &interactables {
-        let overlapping = aabb_overlap(
-            world_pos,
-            CURSOR_SIZE,
-            CURSOR_SIZE,
-            transform.translation().truncate(),
-            interactable.width,
-            interactable.height,
-        );
 
         let currently_highlighted = highlighted.contains(entity);
 
@@ -225,6 +265,7 @@ fn detect_mouse_hover(
                     elapsed_offset: time.elapsed_secs(),
                 });
             }
+
             // Hover ended - remove highlight.
             (true, false) => {
                 commands.entity(entity).remove::<Highlight>();
