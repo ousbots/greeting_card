@@ -197,6 +197,8 @@ fn init(
             id: INTERACTABLE_ID.to_string(),
             height: 64.0,
             width: 50.0,
+            sprite_height: 64.0,
+            sprite_width: 64.0,
             ..default()
         },
         PointLight2d {

@@ -4,6 +4,7 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct Highlight {
     pub elapsed_offset: f32,
+    pub size: Vec2,
 }
 
 // Add to entities that can initiate interactions.
@@ -19,6 +20,8 @@ pub struct Interactable {
     pub id: String,
     pub height: f32,
     pub width: f32,
+    pub sprite_height: f32,
+    pub sprite_width: f32,
     pub highlighted: bool,
 }
 
@@ -107,6 +110,7 @@ fn detect_overlaps(
                     if !interactable.highlighted && *interactable_state == State::Off {
                         commands.entity(interactable_entity).insert(Highlight {
                             elapsed_offset: time.elapsed_secs(),
+                            size: Vec2::new(interactable.sprite_width, interactable.sprite_height),
                         });
                     }
                 }
@@ -130,21 +134,22 @@ fn detect_overlaps(
     }
 }
 
-// Apply a pulsing scale effect to highlighted sprites.
-fn handle_highlight(time: Res<Time>, query: Query<(&mut Sprite, &mut Transform, &Highlight)>) {
-    for (mut sprite, mut transform, highlight) in query {
+// Apply a pulsing scale effect to highlighted sprites using custom_size.
+fn handle_highlight(time: Res<Time>, mut query: Query<(&mut Sprite, &Highlight)>) {
+    for (mut sprite, highlight) in &mut query {
         let pulse = (((time.elapsed_secs() - highlight.elapsed_offset) * 4.).sin() + 1.).mul_add(0.1, 1.);
         sprite.color = Color::srgba(pulse, pulse, pulse, 1.);
-        transform.scale = Vec3::splat(((pulse - 1.) / 4.) + 1.);
+        let scale_factor = ((pulse - 1.) / 4.) + 1.;
+        sprite.custom_size = Some(highlight.size * scale_factor);
     }
 }
 
-// Reset sprite color when highlight is removed.
-fn handle_highlight_reset(mut removed: RemovedComponents<Highlight>, mut query: Query<(&mut Sprite, &mut Transform)>) {
+// Reset sprite color and custom_size when highlight is removed.
+fn handle_highlight_reset(mut removed: RemovedComponents<Highlight>, mut query: Query<&mut Sprite>) {
     for entity in removed.read() {
-        if let Ok((mut sprite, mut transform)) = query.get_mut(entity) {
+        if let Ok(mut sprite) = query.get_mut(entity) {
             sprite.color = Color::WHITE;
-            transform.scale = Vec3::splat(1.);
+            sprite.custom_size = None;
         }
     }
 }

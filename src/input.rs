@@ -263,6 +263,7 @@ fn detect_hover(
             (false, true) => {
                 commands.entity(entity).insert(Highlight {
                     elapsed_offset: time.elapsed_secs(),
+                    size: Vec2::new(interactable.sprite_width, interactable.sprite_height),
                 });
             }
 

@@ -15,11 +15,6 @@ struct SpriteAssets {
 #[derive(Component)]
 struct Stereo;
 
-const RUNNING_VOLUME: f32 = 0.9;
-
-const SPRITE_WIDTH: f32 = 48.0;
-const SPRITE_HEIGHT: f32 = 48.0;
-
 const INTERACTABLE_ID: &str = "stereo";
 
 // Add the animation systems.
@@ -128,12 +123,14 @@ fn init(
         AudioPlayer::new(asset_server.load("stereo/merry_little_christmas.ogg")),
         PlaybackSettings::LOOP
             .with_spatial(true)
-            .with_volume(Volume::Linear(RUNNING_VOLUME))
+            .with_volume(Volume::Linear(0.9))
             .paused(),
         Interactable {
             id: INTERACTABLE_ID.to_string(),
-            height: SPRITE_HEIGHT,
-            width: SPRITE_WIDTH,
+            height: 48.0,
+            width: 48.0,
+            sprite_height: 48.0,
+            sprite_width: 48.0,
             ..default()
         },
     ));
